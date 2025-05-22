@@ -1,0 +1,8 @@
+services:
+  forum:
+    image: forum
+    volumes:
+      - ./forum.db:/app/forum.db
+    ports:
+      - "5000:5000"
+    env_file: ".flaskenv"
