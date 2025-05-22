@@ -6,16 +6,17 @@ from flask_security.forms import RegisterForm
 from wtforms import StringField, TextAreaField
 from flask_wtf import FlaskForm 
 from datetime import datetime
+from os import getenv
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///forum.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['DEBUG'] = True
-app.config['SECRET_KEY'] = 'mysecret'
-app.config['SECURITY_REGISTERABLE'] = True
-app.config['SECURITY_PASSWORD_SALT'] = 'somesaltfortheforum'
-app.config['SECURITY_SEND_REGISTER_EMAIL'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///forum.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = getenv('SQLALCHEMY_TRACK_MODIFICATIONS', 'False').lower() == 'true'
+app.config['DEBUG'] = getenv('DEBUG', 'True').lower() == 'true'
+app.config['SECRET_KEY'] = getenv('SECRET_KEY', 'mysecret')
+app.config['SECURITY_REGISTERABLE'] = getenv('SECURITY_REGISTERABLE', 'True').lower() == 'true'
+app.config['SECURITY_PASSWORD_SALT'] = getenv('SECURITY_PASSWORD_SALT', 'somesaltfortheforum')
+app.config['SECURITY_SEND_REGISTER_EMAIL'] = getenv('SECURITY_SEND_REGISTER_EMAIL', 'False').lower() == 'true'
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
