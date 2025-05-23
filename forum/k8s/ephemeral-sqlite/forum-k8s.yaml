@@ -51,6 +51,24 @@ spec:
         volumeMounts:
         - name: forum-db
           mountPath: /app/database
+        startupProbe:
+          httpGet:
+            path: /
+            port: 5000
+          failureThreshold: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
       volumes:
       - name: forum-db
         emptyDir: {}                   # Change for production to a non-ephemeral solution

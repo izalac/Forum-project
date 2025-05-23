@@ -1,0 +1,173 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: forum
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: forum-env
+  namespace: forum
+data:
+  FLASK_APP: app.py
+  FLASK_DEBUG: "True"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: forum-db-secret
+  namespace: forum
+type: Opaque
+stringData:
+  POSTGRES_DB: forum_db
+  POSTGRES_USER: forum_user
+  POSTGRES_PASSWORD: forum_pass
+  SQLALCHEMY_DATABASE_URI: postgresql://forum_user:forum_pass@forum-postgres:5432/forum_db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forum
+  namespace: forum
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: forum
+  template:
+    metadata:
+      labels:
+        app: forum
+    spec:
+      initContainers:
+      - name: db-init
+        image: forum
+        imagePullPolicy: Never
+        command: ["flask", "db", "upgrade"]
+        envFrom:
+        - configMapRef:
+            name: forum-env
+        env:
+        - name: SQLALCHEMY_DATABASE_URI
+          valueFrom:
+            secretKeyRef:
+              name: forum-db-secret
+              key: SQLALCHEMY_DATABASE_URI
+      containers:
+      - name: forum
+        image: forum
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+        envFrom:
+        - configMapRef:
+            name: forum-env
+        env:
+        - name: SQLALCHEMY_DATABASE_URI
+          valueFrom:
+            secretKeyRef:
+              name: forum-db-secret
+              key: SQLALCHEMY_DATABASE_URI
+        startupProbe:
+          httpGet:
+            path: /
+            port: 5000
+          failureThreshold: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: forum
+  namespace: forum
+spec:
+  selector:
+    app: forum
+  ports:
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forum-postgres
+  namespace: forum
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: forum-postgres
+  template:
+    metadata:
+      labels:
+        app: forum-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: forum-db-secret
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: forum-db-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: forum-db-secret
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: forum-postgres-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: forum-postgres-pvc
+  namespace: forum
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+        #  storageClassName: standard # Add your SC if needed
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: forum-postgres
+  namespace: forum
+spec:
+  selector:
+    app: forum-postgres
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432
+
