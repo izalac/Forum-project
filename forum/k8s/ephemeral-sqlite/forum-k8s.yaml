@@ -30,8 +30,7 @@ spec:
     spec:
       initContainers:                   # delete initContainers section (up to containers: line) if you have a persistant config
       - name: db-init
-        image: forum
-        imagePullPolicy: Never          # For Docker Desktop - change for production
+        image: ivanzalac/forum
         command: ["flask", "db", "upgrade"]
         envFrom:
         - configMapRef:
@@ -41,8 +40,7 @@ spec:
           mountPath: /app/database
       containers:
       - name: forum
-        image: forum
-        imagePullPolicy: Never          # For Docker Desktop - change for production
+        image: ivanzalac/forum
         ports:
         - containerPort: 5000
         envFrom:
@@ -51,6 +49,24 @@ spec:
         volumeMounts:
         - name: forum-db
           mountPath: /app/database
+        startupProbe:
+          httpGet:
+            path: /
+            port: 5000
+          failureThreshold: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
       volumes:
       - name: forum-db
         emptyDir: {}                   # Change for production to a non-ephemeral solution
