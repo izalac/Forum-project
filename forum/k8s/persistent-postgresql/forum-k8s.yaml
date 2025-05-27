@@ -1,13 +1,7 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: forum
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: forum-env
-  namespace: forum
 data:
   FLASK_APP: app.py
   FLASK_DEBUG: "True"
@@ -16,7 +10,6 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: forum-db-secret
-  namespace: forum
 type: Opaque
 stringData:
   POSTGRES_DB: forum_db
@@ -28,7 +21,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: forum
-  namespace: forum
 spec:
   replicas: 2
   selector:
@@ -89,7 +81,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: forum
-  namespace: forum
 spec:
   selector:
     app: forum
@@ -103,7 +94,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: forum-postgres
-  namespace: forum
 spec:
   replicas: 1
   selector:
@@ -147,7 +137,6 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: forum-postgres-pvc
-  namespace: forum
 spec:
   accessModes:
   - ReadWriteOnce
@@ -160,7 +149,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: forum-postgres
-  namespace: forum
 spec:
   selector:
     app: forum-postgres
